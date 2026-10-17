@@ -6,7 +6,7 @@ const { WebSocketServer } = require('ws');
 
 const PORT = process.env.PORT || 3000;
 const HTML = path.join(__dirname, 'quebra-cabeca.html');
-const TIPOS = new Set(['init', 'pegar', 'soltar', 'girar', 'passar']);
+const TIPOS = new Set(['init', 'pegar', 'soltar', 'girar', 'passar', 'desistir']);
 const salas = new Map(); // código da sala -> { clientes: Set, log: [] }
 
 const server = http.createServer((req, res) => {
@@ -48,7 +48,11 @@ wss.on('connection', (ws, req) => {
 
     if (m.t === 'acao' && m.a && TIPOS.has(m.a.t)) {
       // Só uma partida por sala: se já existe, a imagem não pode ser escolhida de novo
-      if (m.a.t === 'init' && sala.log.length) return enviarA(ws, { t: 'log', log: sala.log });
+      if (m.a.t === 'init') {
+        if (sala.log.length) return enviarA(ws, { t: 'log', log: sala.log });
+        m.a.nivel = [0, 1, 2].includes(m.a.nivel) ? m.a.nivel : 0;
+        m.a.img = [0, 1, 2, 3].includes(m.a.img) ? m.a.img : 0;
+      }
       // Outras ações só fazem sentido depois do init
       if (m.a.t !== 'init' && sala.log.length === 0) return;
       sala.log.push(m.a);
